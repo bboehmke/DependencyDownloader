@@ -33,7 +33,9 @@ public class DependencyDownloader {
      * @param args The commandline arguments
      */
     public static void main(String[] args) {
-        System.out.println("Dependency Downloader - version ???\n");
+        // get and show version number
+        String version = DependencyDownloader.class.getPackage().getImplementationVersion();
+        System.out.println("Dependency Downloader - version " + version + "\n");
 
         // convert arguments to list
         List<String> argList = Arrays.asList(args);
