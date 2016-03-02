@@ -1,0 +1,16 @@
+<DependencyDownloader>
+    <Zip Source="http://example.com/test.zip"
+         Destination="tmp/zip_dir/"
+         Md5="268b74a52aab9171101e7e54ab65fd93"
+         Sha1="f26480ac43401c9c5138c6ee7f759c9996c3d6c7"/>
+
+    <File Source="http://example.com/test.pdf"
+          Destination="tmp/file_dir/"
+          Md5="5f75e92dead203c221055c4606eb99b0"
+          Sha1="5fbcd671fe0b3c4708f09f350b58f0658b68f130"/>
+
+    <File Source="http://example.com/test.pdf"
+          Destination="tmp/file.pdf"
+          Md5="5f75e92dead203c221055c4606eb99b0"
+          Sha1="5fbcd671fe0b3c4708f09f350b58f0658b68f130"/>
+</DependencyDownloader>

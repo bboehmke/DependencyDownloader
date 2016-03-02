@@ -1,0 +1,12 @@
+### InteliJ
+.idea/
+*.iml
+
+### Gradle template
+.gradle
+build/
+
+### Application files
+*.log
+tmp/
+depend.xml

@@ -1,0 +1,14 @@
+apply plugin: 'java'
+
+version "0.1.0"
+
+repositories {
+    mavenCentral()
+}
+
+jar {
+    manifest {
+        attributes "Main-Class": "net.boehmke.tools.dep_downloader.DependencyDownloader"
+    }
+    archiveName "DependencyDownloader.jar"
+}
