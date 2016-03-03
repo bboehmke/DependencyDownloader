@@ -80,7 +80,8 @@ public class Downloader {
         }
 
         // create parent directory ifg not exist
-        if (!destinationFile.getParentFile().exists() &&
+        if (destinationFile.getParentFile() != null &&
+            !destinationFile.getParentFile().exists() &&
             !destinationFile.getParentFile().mkdirs()) {
 
             throw new IOException("Failed to create destination directory: " +

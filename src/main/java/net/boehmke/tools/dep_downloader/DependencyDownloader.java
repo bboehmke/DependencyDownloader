@@ -19,6 +19,9 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.List;
@@ -211,6 +214,9 @@ public class DependencyDownloader {
         // get root element
         Element root = doc.getDocumentElement();
 
+        // set tmp file
+        String tmpFile = ".tmpDependencyFile.dat";
+
         // create downloader
         Downloader downloader = new Downloader(proxy);
 
@@ -239,15 +245,16 @@ public class DependencyDownloader {
                 } else if (element.getTagName().equals("Zip")) {
                     System.out.println("=> Get zip file: " + element.getAttribute("Source"));
                     // download file
-                    downloader.downloadFile(element.getAttribute("Source"),
-                                            "tmp/tmp.zip");
+                    downloader.downloadFile(element.getAttribute("Source"), tmpFile);
 
                     // check checksum (if exist)
                     checkChecksum(element, downloader.getLastDownloadedFile());
 
                     // decompress file
-                    Zip.decompress("tmp/tmp.zip",
-                                   element.getAttribute("Destination"));
+                    Zip.decompress(tmpFile, element.getAttribute("Destination"));
+
+                    // remove tmp file
+                    Files.delete(Paths.get(tmpFile));
 
                     System.out.println("");
                 } else {
