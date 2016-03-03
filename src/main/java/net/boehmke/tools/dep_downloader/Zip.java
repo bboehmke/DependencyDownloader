@@ -96,6 +96,6 @@ public class Zip {
             ++extractedFiles;
             System.out.print("\r  " + extractedFiles + "/" + fileCount);
         }
-        System.out.println("\r  Done!");
+        System.out.println("\r  Done!               ");
     }
 }
