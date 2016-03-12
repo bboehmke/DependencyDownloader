@@ -8,7 +8,7 @@ repositories {
 
 jar {
     manifest {
-        attributes "Main-Class": "net.boehmke.tools.dep_downloader.DependencyDownloader",
+        attributes "Main-Class": "net.boehmke.tools.dependency_downloader.DependencyDownloader",
                 "Implementation-Version": version
     }
     archiveName "DependencyDownloader.jar"

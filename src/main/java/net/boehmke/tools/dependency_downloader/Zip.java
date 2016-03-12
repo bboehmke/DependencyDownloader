@@ -5,7 +5,7 @@
  * the terms of the MIT License. See the LICENSE file for more details.
  */
 
-package net.boehmke.tools.dep_downloader;
+package net.boehmke.tools.dependency_downloader;
 
 
 import java.io.*;

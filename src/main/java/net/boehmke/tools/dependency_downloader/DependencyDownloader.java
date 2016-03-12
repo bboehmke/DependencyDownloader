@@ -5,7 +5,7 @@
  * the terms of the MIT License. See the LICENSE file for more details.
  */
 
-package net.boehmke.tools.dep_downloader;
+package net.boehmke.tools.dependency_downloader;
 
 
 import org.w3c.dom.Document;
@@ -24,7 +24,6 @@ import javax.xml.transform.stream.StreamSource;
 import javax.xml.validation.Schema;
 import javax.xml.validation.SchemaFactory;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;

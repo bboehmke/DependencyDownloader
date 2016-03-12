@@ -2,8 +2,8 @@ DependencyDownloader
 ====================
 
 DependencyDownloader is a simple and very small Java application for 
-downloading project dependencies. Because the very small size (actual 
-lower 20KB) it can be added to a VCS without problems.
+downloading project dependencies. Because the very small size it can 
+be added to a VCS without problems.
 
 The only requirement to run the downloader is a Java 7+ runtime.
 
