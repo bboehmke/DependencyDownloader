@@ -19,9 +19,11 @@ public class Tar {
      * Extract the given TAR file
      * @param sourceFile Path to the Tar file
      * @param destination Destination path for extraction
+     * @param subdir Sub directory in zip file that should be extracted
      * @throws IOException
      */
-    public static void extract(String sourceFile, String destination) throws IOException {
+    public static void extract(String sourceFile, String destination,
+                               String subdir) throws IOException {
         // create output directory if not exists
         File directory = new File(destination);
         if(!directory.exists() &&
@@ -55,11 +57,20 @@ public class Tar {
             FileOutputStream out = null;
             if (type == 0) {
                 // get file name
-                String fileName =
-                        directory.getPath() + "/" + getString(header, 0, 100);
+                String fileName = getString(header, 0, 100);
+
+                // if sub directory is set copy only this files
+                if (!subdir.isEmpty()) {
+                    if (fileName.startsWith(subdir)) {
+                        fileName = fileName.replaceFirst(subdir, "");
+                    } else {
+                        // skip this entry
+                        continue;
+                    }
+                }
 
                 // get destination file
-                File destinationFile = new File(fileName);
+                File destinationFile = new File(directory.getPath() + "/" + fileName);
 
                 // create parent directory of destination file if not exist
                 if(!destinationFile.getParentFile().exists() &&

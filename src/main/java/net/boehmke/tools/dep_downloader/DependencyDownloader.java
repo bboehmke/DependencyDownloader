@@ -252,7 +252,9 @@ public class DependencyDownloader {
                     checkChecksum(element, downloader.getLastDownloadedFile());
 
                     // decompress file
-                    Zip.decompress(tmpFile, element.getAttribute("Destination"));
+                    Zip.decompress(tmpFile,
+                                   element.getAttribute("Destination"),
+                                   element.getAttribute("SourceSubDir"));
 
                     // remove tmp file
                     Files.delete(Paths.get(tmpFile));
@@ -286,7 +288,9 @@ public class DependencyDownloader {
                     checkChecksum(element, downloader.getLastDownloadedFile());
 
                     // extract file
-                    Tar.extract(tmpFile, element.getAttribute("Destination"));
+                    Tar.extract(tmpFile,
+                                element.getAttribute("Destination"),
+                                element.getAttribute("SourceSubDir"));
 
                     // remove tmp file
                     Files.delete(Paths.get(tmpFile));
@@ -306,7 +310,9 @@ public class DependencyDownloader {
                     GZip.decompress(tmpFile, tmpFile + ".ungz");
 
                     // extract file
-                    Tar.extract(tmpFile + ".ungz", element.getAttribute("Destination"));
+                    Tar.extract(tmpFile + ".ungz",
+                                element.getAttribute("Destination"),
+                                element.getAttribute("SourceSubDir"));
 
                     // remove tmp file
                     Files.delete(Paths.get(tmpFile));

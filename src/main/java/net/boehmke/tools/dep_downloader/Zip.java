@@ -22,9 +22,11 @@ public class Zip {
      * Decompress the given ZIP file
      * @param sourceFile Path to the ZIP file
      * @param destination Destination path for decompression
+     * @param subdir Sub directory in zip file that should be extracted
      * @throws IOException
      */
-    public static void decompress(String sourceFile, String destination) throws IOException {
+    public static void decompress(String sourceFile, String destination,
+                                  String subdir) throws IOException {
         // create output directory if not exists
         File directory = new File(destination);
         if(!directory.exists() &&
@@ -63,6 +65,16 @@ public class Zip {
 
             // get file name
             String fileName = entry.getName();
+
+            // if sub directory is set copy only this files
+            if (!subdir.isEmpty()) {
+                if (fileName.startsWith(subdir)) {
+                    fileName = fileName.replaceFirst(subdir, "");
+                } else {
+                    // skip this entry
+                    continue;
+                }
+            }
 
             // get destination file
             File destinationFile = new File(destination + File.separator + fileName);

@@ -69,6 +69,7 @@ public class Downloader {
 
         // send request to server
         HttpURLConnection request = (HttpURLConnection)url.openConnection(proxy);
+        // enable redirect
         request.setInstanceFollowRedirects(true);
 
         // check if the destination is a directory
