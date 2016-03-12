@@ -14,13 +14,19 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
+import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.Source;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamSource;
+import javax.xml.validation.Schema;
+import javax.xml.validation.SchemaFactory;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
@@ -153,9 +159,8 @@ public class DependencyDownloader {
 
                 // load dependency file
                 try {
-                    loadDependencyList(filePath, proxy);
+                    downloadDependencyList(filePath, proxy);
                 } catch (IOException e) {
-                    e.printStackTrace();
                     System.err.println("=== ERROR ===");
                     System.err.println(e.getMessage());
                 } catch (NoSuchAlgorithmException e) {
@@ -202,15 +207,25 @@ public class DependencyDownloader {
      * @throws SAXException
      * @throws NoSuchAlgorithmException
      */
-    private static void loadDependencyList(String path, String proxy) throws IOException,
+    private static void downloadDependencyList(String path, String proxy) throws IOException,
             ParserConfigurationException, SAXException, NoSuchAlgorithmException {
+
+        // load XSD file
+        SchemaFactory schemaFactory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
+        Source schemaSource = new StreamSource(
+                DependencyDownloader.class.getResourceAsStream("/depend.xsd"));
+        Schema schema = schemaFactory.newSchema(schemaSource);
 
         // get XML factory and doc builder
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+        factory.setNamespaceAware(true);
         DocumentBuilder docBuilder = factory.newDocumentBuilder();
 
         // parse document
         Document doc = docBuilder.parse(path);
+
+        // validate schema
+        schema.newValidator().validate(new DOMSource(doc));
 
         // get root element
         Element root = doc.getDocumentElement();

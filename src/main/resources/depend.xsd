@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    targetNamespace="http://boehmke.net/tools/dependency_downloader/depend"
+    xmlns="http://boehmke.net/tools/dependency_downloader/depend" elementFormDefault="qualified">
+
+    <xs:element name="DependencyDownloader">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:choice maxOccurs="unbounded">
+                    <xs:element name="File" type="FileType"/>
+                    <xs:element name="Zip" type="ArchiveType"/>
+                    <xs:element name="Tar" type="ArchiveType"/>
+                    <xs:element name="TarGz" type="ArchiveType"/>
+                    <xs:element name="GZip" type="FileType"/>
+                </xs:choice>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+    <xs:complexType name="FileType">
+        <xs:attribute name="Source" type="xs:string"/>
+        <xs:attribute name="Destination" type="xs:string"/>
+        <xs:attribute name="Md5" type="xs:string"/>
+        <xs:attribute name="Sha1" type="xs:string"/>
+    </xs:complexType>
+    <xs:complexType name="ArchiveType">
+        <xs:complexContent>
+            <xs:extension base="FileType">
+                <xs:attribute name="SourceSubDir" type="xs:string"/>
+            </xs:extension>
+        </xs:complexContent>
+    </xs:complexType>
+</xs:schema>
