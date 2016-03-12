@@ -155,6 +155,7 @@ public class DependencyDownloader {
                 try {
                     loadDependencyList(filePath, proxy);
                 } catch (IOException e) {
+                    e.printStackTrace();
                     System.err.println("=== ERROR ===");
                     System.err.println(e.getMessage());
                 } catch (NoSuchAlgorithmException e) {
@@ -235,13 +236,13 @@ public class DependencyDownloader {
                     System.out.println("=> Get plain file: " + element.getAttribute("Source"));
                     // download file
                     downloader.downloadFile(element.getAttribute("Source"),
-                                            element.getAttribute("Destination"));
+                            element.getAttribute("Destination"));
 
                     // check checksum (if exist)
                     checkChecksum(element, downloader.getLastDownloadedFile());
                     System.out.println("");
 
-                // handle ZIP files
+                    // handle ZIP files
                 } else if (element.getTagName().equals("Zip")) {
                     System.out.println("=> Get zip file: " + element.getAttribute("Source"));
                     // download file
@@ -255,6 +256,61 @@ public class DependencyDownloader {
 
                     // remove tmp file
                     Files.delete(Paths.get(tmpFile));
+
+                    System.out.println("");
+
+                // handle GZIP files
+                } else if (element.getTagName().equals("GZip")) {
+                    System.out.println("=> Get Gzip file: " + element.getAttribute("Source"));
+                    // download file
+                    downloader.downloadFile(element.getAttribute("Source"), tmpFile);
+
+                    // check checksum (if exist)
+                    checkChecksum(element, downloader.getLastDownloadedFile());
+
+                    // decompress file
+                    GZip.decompress(tmpFile, element.getAttribute("Destination"));
+
+                    // remove tmp file
+                    Files.delete(Paths.get(tmpFile));
+
+                    System.out.println("");
+
+                // handle TAR files
+                } else if (element.getTagName().equals("Tar")) {
+                    System.out.println("=> Get Tar file: " + element.getAttribute("Source"));
+                    // download file
+                    downloader.downloadFile(element.getAttribute("Source"), tmpFile);
+
+                    // check checksum (if exist)
+                    checkChecksum(element, downloader.getLastDownloadedFile());
+
+                    // extract file
+                    Tar.extract(tmpFile, element.getAttribute("Destination"));
+
+                    // remove tmp file
+                    Files.delete(Paths.get(tmpFile));
+
+                    System.out.println("");
+
+                // handle TAR.GZ files
+                } else if (element.getTagName().equals("TarGz")) {
+                    System.out.println("=> Get TarGz file: " + element.getAttribute("Source"));
+                    // download file
+                    downloader.downloadFile(element.getAttribute("Source"), tmpFile);
+
+                    // check checksum (if exist)
+                    checkChecksum(element, downloader.getLastDownloadedFile());
+
+                    // decompress file
+                    GZip.decompress(tmpFile, tmpFile + ".ungz");
+
+                    // extract file
+                    Tar.extract(tmpFile + ".ungz", element.getAttribute("Destination"));
+
+                    // remove tmp file
+                    Files.delete(Paths.get(tmpFile));
+                    Files.delete(Paths.get(tmpFile + ".ungz"));
 
                     System.out.println("");
                 } else {

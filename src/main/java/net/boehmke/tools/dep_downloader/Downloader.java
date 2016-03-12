@@ -69,6 +69,7 @@ public class Downloader {
 
         // send request to server
         HttpURLConnection request = (HttpURLConnection)url.openConnection(proxy);
+        request.setInstanceFollowRedirects(true);
 
         // check if the destination is a directory
         if (destination.endsWith("/")) {
@@ -76,7 +77,7 @@ public class Downloader {
             String filename = source.substring(source.lastIndexOf('/')+1, source.length());
 
             // set new destination file
-            destinationFile = new File(destination + "/" + filename);
+            destinationFile = new File(destination + filename);
         }
 
         // create parent directory ifg not exist

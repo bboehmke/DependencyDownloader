@@ -52,7 +52,7 @@ public class Zip {
         byte[] buffer = new byte[1024*10];
 
         while(entries.hasMoreElements()){
-            // get nex entry
+            // get next entry
             ZipEntry entry = entries.nextElement();
 
             // skip directories
