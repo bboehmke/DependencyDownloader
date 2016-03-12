@@ -26,8 +26,8 @@ import javax.xml.validation.SchemaFactory;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.nio.file.*;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.List;
@@ -51,6 +51,7 @@ public class DependencyDownloader {
 
         // set default settings
         boolean showHelp = false;
+        boolean cleanUp = false;
         boolean createChecksumMd5 = false;
         boolean createChecksumSha1 = false;
         String filePath = "depend.xml";
@@ -64,6 +65,10 @@ public class DependencyDownloader {
             // help
             if (arg.equals("-h") || arg.equals("--help")) {
                 showHelp = true;
+
+            // cleanup mode
+            } else if (arg.equals("-c") || arg.equals("--clean")) {
+                cleanUp = true;
 
             // generate MD5 checksum
             } else if (arg.equals("-m") || arg.equals("--createMd5")) {
@@ -159,7 +164,14 @@ public class DependencyDownloader {
 
                 // load dependency file
                 try {
-                    downloadDependencyList(filePath, proxy);
+                    // cleanup
+                    if (cleanUp) {
+                        cleanDependencyList(filePath);
+
+                    // download
+                    } else {
+                        downloadDependencyList(filePath, proxy);
+                    }
                 } catch (IOException e) {
                     System.err.println("=== ERROR ===");
                     System.err.println(e.getMessage());
@@ -189,6 +201,7 @@ public class DependencyDownloader {
         System.out.println("  " + baseName + " [OPTION] [FILE_PATH]\n");
 
         System.out.println("Options:");
+        System.out.println("  -c --clean          cleanup previous downloaded dependencies");
         System.out.println("  -m --md5            generate MD5 hash of file");
         System.out.println("  -p --proxy [PROXY]  set path to proxy");
         System.out.println("  -s --sha1           generate SHA1 hash of file\n");
@@ -198,17 +211,8 @@ public class DependencyDownloader {
                            "  will be used as dependency list.\n");
     }
 
-    /**
-     * Load the dependency list and download the dependencies
-     * @param path Path to the dependency list
-     * @param proxy Proxy used for download
-     * @throws IOException
-     * @throws ParserConfigurationException
-     * @throws SAXException
-     * @throws NoSuchAlgorithmException
-     */
-    private static void downloadDependencyList(String path, String proxy) throws IOException,
-            ParserConfigurationException, SAXException, NoSuchAlgorithmException {
+    private static Element loadDependencyList(String path)
+            throws ParserConfigurationException, SAXException, IOException {
 
         // load XSD file
         SchemaFactory schemaFactory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
@@ -228,7 +232,46 @@ public class DependencyDownloader {
         schema.newValidator().validate(new DOMSource(doc));
 
         // get root element
-        Element root = doc.getDocumentElement();
+        return doc.getDocumentElement();
+    }
+
+    /**
+     * Load the dependency list and clean all destinations
+     * @param path Path to the dependency list
+     */
+    private static void cleanDependencyList(String path) throws IOException,
+            ParserConfigurationException, SAXException, NoSuchAlgorithmException {
+
+
+        // get node list
+        NodeList nodes = loadDependencyList(path).getChildNodes();
+        for (int i = 0; i < nodes.getLength(); i++) {
+            // get node
+            Node node = nodes.item(i);
+
+            // if node is an element handle it
+            if (node.getNodeType() == Node.ELEMENT_NODE) {
+                Element element = (Element) node;
+
+                System.out.println("=> Remove " + element.getAttribute("Destination"));
+
+                // delete destination
+                deleteDir(element.getAttribute("Destination"));
+            }
+        }
+    }
+
+    /**
+     * Load the dependency list and download the dependencies
+     * @param path Path to the dependency list
+     * @param proxy Proxy used for download
+     * @throws IOException
+     * @throws ParserConfigurationException
+     * @throws SAXException
+     * @throws NoSuchAlgorithmException
+     */
+    private static void downloadDependencyList(String path, String proxy) throws IOException,
+            ParserConfigurationException, SAXException, NoSuchAlgorithmException {
 
         // set tmp file
         String tmpFile = ".tmpDependencyFile.dat";
@@ -237,7 +280,7 @@ public class DependencyDownloader {
         Downloader downloader = new Downloader(proxy);
 
         // get node list
-        NodeList nodes = root.getChildNodes();
+        NodeList nodes = loadDependencyList(path).getChildNodes();
         for (int i = 0; i < nodes.getLength(); i++) {
             // get node
             Node node = nodes.item(i);
@@ -361,6 +404,10 @@ public class DependencyDownloader {
         }
     }
 
+    /**
+     * Get the proxy setting of the system
+     * @return Proxy setting or empty string
+     */
     private static String getProxySettings() {
         String http_proxy = System.getenv("http_proxy");
         if (http_proxy == null) {
@@ -372,5 +419,25 @@ public class DependencyDownloader {
         } else {
             return "";
         }
+    }
+
+    /**
+     * Delete directory and all files in it
+     * @param path Path to the directory
+     */
+    private static void deleteDir(String path) throws IOException {
+        Files.walkFileTree(Paths.get(path), new SimpleFileVisitor<Path>() {
+            @Override
+            public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+                Files.delete(file);
+                return FileVisitResult.CONTINUE;
+            }
+
+            @Override
+            public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
+                Files.delete(dir);
+                return FileVisitResult.CONTINUE;
+            }
+        });
     }
 }
