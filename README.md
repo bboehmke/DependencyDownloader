@@ -33,13 +33,13 @@ has an other name you can call
 
 ### Supported files & archives
 
-| Type                        | XML tag |
-|:----------------------------|:--------|
-| Plain file                  | File    |
-| GZip compressed file        | GZip    |
-| ZIP archive                 | Zip     |
-| TAR archive (uncompressed)  | Tar     |
-| TAR archive GZip compressed | TarGz   |
+| XML tag | Type                        |
+|:--------|:----------------------------|
+| File    | Plain file                  |
+| GZip    | GZip compressed file        |
+| Zip     | ZIP archive                 |
+| Tar     | TAR archive (uncompressed)  |
+| TarGz   | TAR archive GZip compressed |
 
 ### File or Archive attributes
 
