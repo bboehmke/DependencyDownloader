@@ -255,7 +255,11 @@ public class DependencyDownloader {
                 System.out.println("=> Remove " + element.getAttribute("Destination"));
 
                 // delete destination
-                deleteDir(element.getAttribute("Destination"));
+                try {
+                    deleteDir(element.getAttribute("Destination"));
+                } catch (IOException e) {
+                    System.out.println("  Already removed!");
+                }
             }
         }
     }
