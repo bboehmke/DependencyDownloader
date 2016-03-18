@@ -113,6 +113,9 @@ public class Checksum {
             digest.update(buffer, 0, size);
         }
 
+        // close file
+        in.close();
+
         // calculate checksum
         return byteToString(digest.digest());
     }

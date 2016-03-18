@@ -125,64 +125,55 @@ public class DependencyDownloader {
         if (showHelp) {
             showHelp();
 
-        } else if (createChecksumMd5 || createChecksumSha1) {
-            // check if source file exist
-            File file = new File(filePath);
-            if (!file.exists()) {
-                // if not show error and help
-                System.err.println("[ERR] Source file not found: " + filePath + "\n");
-                showHelp();
-
-            } else {
-                // create and show checksum
-                try {
-                    if (createChecksumMd5) {
-                        System.out.println("MD5 Checksum for " + filePath + ":");
-                        System.out.println("  " + Checksum.createMd5(filePath));
-                    } else {
-                        System.out.println("SHA1 Checksum for " + filePath + ":");
-                        System.out.println("  " + Checksum.createSha1(filePath));
-                    }
-                } catch (IOException e) {
-                    System.err.println("=== ERROR ===");
-                    System.err.println(e.getMessage());
-                } catch (NoSuchAlgorithmException e) {
-                    System.err.println("=== ERROR ===");
-                    System.err.println(e.getMessage());
-                }
-            }
-
         } else {
-            // check if default dependency file exist
-            File file = new File(filePath);
-            if (!file.exists()) {
-                // if not show error and help
-                System.err.println("[ERR] Dependency file not found: " + filePath + "\n");
-                showHelp();
-            } else {
+            if (createChecksumMd5 || createChecksumSha1) {
+                // check if source file exist
+                File file = new File(filePath);
+                if (!file.exists()) {
+                    // if not show error and help
+                    System.err.println("[ERR] Source file not found: " + filePath + "\n");
+                    showHelp();
 
-                // load dependency file
-                try {
-                    // cleanup
-                    if (cleanUp) {
-                        cleanDependencyList(filePath);
-
-                    // download
-                    } else {
-                        downloadDependencyList(filePath, proxy);
+                } else {
+                    // create and show checksum
+                    try {
+                        if (createChecksumMd5) {
+                            System.out.println("MD5 Checksum for " + filePath + ":");
+                            System.out.println("  " + Checksum.createMd5(filePath));
+                        } else {
+                            System.out.println("SHA1 Checksum for " + filePath + ":");
+                            System.out.println("  " + Checksum.createSha1(filePath));
+                        }
+                    } catch (IOException | NoSuchAlgorithmException e) {
+                        System.err.println("=== ERROR ===");
+                        System.err.println(e.getMessage());
                     }
-                } catch (IOException e) {
-                    System.err.println("=== ERROR ===");
-                    System.err.println(e.getMessage());
-                } catch (NoSuchAlgorithmException e) {
-                    System.err.println("=== ERROR ===");
-                    System.err.println(e.getMessage());
-                } catch (SAXException e) {
-                    System.err.println("=== ERROR ===");
-                    System.err.println(e.getMessage());
-                } catch (ParserConfigurationException e) {
-                    System.err.println("=== ERROR ===");
-                    System.err.println(e.getMessage());
+                }
+
+            } else {
+                // check if default dependency file exist
+                File file = new File(filePath);
+                if (!file.exists()) {
+                    // if not show error and help
+                    System.err.println("[ERR] Dependency file not found: " + filePath + "\n");
+                    showHelp();
+                } else {
+
+                    // load dependency file
+                    try {
+                        // cleanup
+                        if (cleanUp) {
+                            cleanDependencyList(filePath);
+
+                            // download
+                        } else {
+                            downloadDependencyList(filePath, proxy);
+                        }
+                    } catch (IOException | NoSuchAlgorithmException | SAXException | ParserConfigurationException e) {
+                        System.err.println("=== ERROR ===");
+                        System.err.println(e.getMessage());
+                        e.printStackTrace();
+                    }
                 }
             }
         }

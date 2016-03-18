@@ -108,6 +108,9 @@ public class Zip {
             ++extractedFiles;
             System.out.print("\r  " + extractedFiles + "/" + fileCount);
         }
+        // close ZIP file
+        zipFile.close();
+
         System.out.println("\r  Done!               ");
     }
 }
