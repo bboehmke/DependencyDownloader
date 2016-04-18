@@ -7,7 +7,9 @@
 
 package net.boehmke.tools.dependency_downloader;
 
+import net.boehmke.tools.dependency_downloader.cli.Parser;
 
+import net.boehmke.tools.dependency_downloader.cli.ParserException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -28,8 +30,6 @@ import java.io.IOException;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.security.NoSuchAlgorithmException;
-import java.util.Arrays;
-import java.util.List;
 
 /**
  * Main class of the Dependency Downloader
@@ -40,107 +40,58 @@ public class DependencyDownloader {
      *
      * @param args The commandline arguments
      */
-    public static void main(String[] args) {
+    public static void main(String[] args) throws ParserException {
         // get and show version number
         String version = DependencyDownloader.class.getPackage().getImplementationVersion();
         System.out.println("Dependency Downloader - version " + version + "\n");
 
-        // convert arguments to list
-        List<String> argList = Arrays.asList(args);
+        // create commandline parser and add options and parameter
+        Parser parser = new Parser();
 
-        // set default settings
-        boolean showHelp = false;
-        boolean cleanUp = false;
-        boolean createChecksumMd5 = false;
-        boolean createChecksumSha1 = false;
-        String filePath = "depend.xml";
-        String proxy = getProxySettings();
+        parser.addOption("clean", null, false, "cleanup previous downloaded dependencies");
+        parser.addOption("help", "h", false, "show this help");
+        parser.addOption("md5", "m", false, "generate MD5 hash of file");
+        parser.addOption("proxy", "p", true, "set path to proxy");
+        parser.addOption("sha1", "s", false, "generate SHA1 hash of file");
 
-        // check if no arguments were given
-        if (argList.size() > 0) {
-            // get first argument
-            String arg = argList.get(0);
+        parser.addParameter("FILE", "Path to the file (Default: \"depend.xml\")");
 
-            // help
-            if (arg.equals("-h") || arg.equals("--help")) {
-                showHelp = true;
+        try {
+            // handle commandline arguments
+            parser.handle(args);
 
-            // cleanup mode
-            } else if (arg.equals("-c") || arg.equals("--clean")) {
-                cleanUp = true;
-
-            // generate MD5 checksum
-            } else if (arg.equals("-m") || arg.equals("--createMd5")) {
-                createChecksumMd5 = true;
-
-                // check if file is given
-                if (argList.size() < 2) {
-                    showHelp = true;
-                    System.err.println("[ERR] Checksum creation requires a path argument!\n");
-
-                } else {
-                    filePath = argList.get(1);
-                }
-
-            // generate SHA1 checksum
-            } else if (arg.equals("-s") || arg.equals("--createSha1")) {
-                createChecksumSha1 = true;
-
-                // check if file is given
-                if (argList.size() < 2) {
-                    showHelp = true;
-                    System.err.println("[ERR] Checksum creation requires a path argument!\n");
-
-                } else {
-                    filePath = argList.get(1);
-                }
-
-            // set proxy for download
-            } else if (arg.equals("-p") || arg.equals("--proxy")) {
-                // check if file is given
-                if (argList.size() < 2) {
-                    showHelp = true;
-                    System.err.println("[ERR] Proxy requires a value!\n");
-
-                } else {
-                    // get proxy
-                    proxy = argList.get(1);
-
-                    // set file path if exist
-                    if (argList.size() > 2) {
-                        filePath = argList.get(2);
-                    }
-                }
-
-            // unknown option
-            } else if (arg.startsWith("-")) {
-                showHelp = true;
-                System.err.println("[ERR] Unknown Option: " + arg + "\n");
-
-            } else {
-                filePath = arg;
-            }
+        } catch (ParserException e) {
+            System.err.println("=== ERROR ===");
+            System.err.println(e.getMessage());
+            System.err.println();
+            parser.showHelp();
+            System.exit(1);
         }
 
-        if (showHelp) {
-            showHelp();
+        // get some arguments values
+        String filePath = parser.getValue("FILE", "depend.xml");
+        String proxy = parser.getValue("proxy", getProxySettings());
+
+        if (parser.isSet("help")) {
+            parser.showHelp();
 
         } else {
-            if (createChecksumMd5 || createChecksumSha1) {
+            if (parser.isSet("md5") || parser.isSet("sha1")) {
                 // check if source file exist
                 File file = new File(filePath);
                 if (!file.exists()) {
                     // if not show error and help
                     System.err.println("[ERR] Source file not found: " + filePath + "\n");
-                    showHelp();
+                    parser.showHelp();
 
                 } else {
                     // create and show checksum
                     try {
-                        if (createChecksumMd5) {
+                        if (parser.isSet("md5")) {
                             System.out.println("MD5 Checksum for " + filePath + ":");
                             System.out.println("  " + Checksum.createMd5(filePath));
-                        } else {
+                        }
+                        if (parser.isSet("sha1")) {
                             System.out.println("SHA1 Checksum for " + filePath + ":");
                             System.out.println("  " + Checksum.createSha1(filePath));
                         }
@@ -156,16 +107,16 @@ public class DependencyDownloader {
                 if (!file.exists()) {
                     // if not show error and help
                     System.err.println("[ERR] Dependency file not found: " + filePath + "\n");
-                    showHelp();
+                    parser.showHelp();
                 } else {
 
                     // load dependency file
                     try {
                         // cleanup
-                        if (cleanUp) {
+                        if (parser.isSet("clean")) {
                             cleanDependencyList(filePath);
 
-                            // download
+                        // download
                         } else {
                             downloadDependencyList(filePath, proxy);
                         }
@@ -180,27 +131,13 @@ public class DependencyDownloader {
     }
 
     /**
-     * Show the commandline help
+     * Load and validate the dependency list
+     * @param path Path to the depend file
+     * @return Root element of the file
+     * @throws ParserConfigurationException
+     * @throws SAXException
+     * @throws IOException
      */
-    private static void showHelp() {
-        String path = DependencyDownloader.class.getProtectionDomain().getCodeSource().getLocation().getPath();
-        String baseName = path.substring(path.lastIndexOf('/')+1, path.length());
-        System.out.println("===== Help =====");
-
-        System.out.println("Command:");
-        System.out.println("  " + baseName + " [OPTION] [FILE_PATH]\n");
-
-        System.out.println("Options:");
-        System.out.println("  -c --clean          cleanup previous downloaded dependencies");
-        System.out.println("  -m --md5            generate MD5 hash of file");
-        System.out.println("  -p --proxy [PROXY]  set path to proxy");
-        System.out.println("  -s --sha1           generate SHA1 hash of file\n");
-
-        System.out.println("Notes:");
-        System.out.println("  If no file name is given the file \"depend.xml\" \n" +
-                           "  will be used as dependency list.\n");
-    }
-
     private static Element loadDependencyList(String path)
             throws ParserConfigurationException, SAXException, IOException {
 
