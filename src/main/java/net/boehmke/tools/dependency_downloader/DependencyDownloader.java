@@ -36,6 +36,11 @@ import java.security.NoSuchAlgorithmException;
  */
 public class DependencyDownloader {
     /**
+     * Location of download cache
+     */
+    private static final String cachePath = ".dependencyDownloader/";
+
+    /**
      * The entry point of application.
      *
      * @param args The commandline arguments
@@ -48,11 +53,13 @@ public class DependencyDownloader {
         // create commandline parser and add options and parameter
         Parser parser = new Parser();
 
-        parser.addOption("clean", null, false, "cleanup previous downloaded dependencies");
-        parser.addOption("help", "h", false, "show this help");
-        parser.addOption("md5", "m", false, "generate MD5 hash of file");
-        parser.addOption("proxy", "p", true, "set path to proxy");
-        parser.addOption("sha1", "s", false, "generate SHA1 hash of file");
+        parser.addOption("clear-cache", null, false, "Removes the cache after extraction");
+        parser.addOption("clean", null, false, "Cleanup previous downloaded dependencies");
+        parser.addOption("download-only", null, false, "Only download the dependencies to the cache");
+        parser.addOption("help", "h", false, "Show this help");
+        parser.addOption("md5", "m", false, "Generate MD5 hash of file");
+        parser.addOption("proxy", "p", true, "Set path to proxy");
+        parser.addOption("sha1", "s", false, "Generate SHA1 hash of file");
 
         parser.addParameter("FILE", "Path to the file (Default: \"depend.xml\")");
 
@@ -112,14 +119,12 @@ public class DependencyDownloader {
 
                     // load dependency file
                     try {
-                        // cleanup
-                        if (parser.isSet("clean")) {
-                            cleanDependencyList(filePath);
+                        handleDependencies(
+                                filePath, proxy,
+                                parser.isSet("clean"),
+                                parser.isSet("download-only"),
+                                parser.isSet("clear-cache"));
 
-                        // download
-                        } else {
-                            downloadDependencyList(filePath, proxy);
-                        }
                     } catch (IOException | NoSuchAlgorithmException | SAXException | ParserConfigurationException e) {
                         System.err.println("=== ERROR ===");
                         System.err.println(e.getMessage());
@@ -128,6 +133,64 @@ public class DependencyDownloader {
                 }
             }
         }
+    }
+
+    /**
+     * Handle the Dependency list
+     * @param dependFilePath Path to dpend file
+     * @param proxy Proxy setting for download
+     * @param clean Remove existing (extracted) dependencies
+     * @param onlyDownload Only download dependencies (no extract)
+     * @param clearCache Clear the cache after download
+     * @throws ParserConfigurationException
+     * @throws SAXException
+     * @throws IOException
+     * @throws NoSuchAlgorithmException
+     */
+    private static void handleDependencies(String dependFilePath, String proxy,
+                                           boolean clean, boolean onlyDownload,
+                                           boolean clearCache)
+            throws ParserConfigurationException, SAXException, IOException,
+                   NoSuchAlgorithmException {
+
+        // create downloader
+        Downloader downloader = new Downloader(proxy);
+
+        // get node list
+        NodeList nodes = loadDependencyList(dependFilePath).getChildNodes();
+        for (int i = 0; i < nodes.getLength(); i++) {
+            // get node
+            Node node = nodes.item(i);
+
+            // if node is an element handle it
+            if (node.getNodeType() == Node.ELEMENT_NODE) {
+                Element element = (Element) node;
+
+                // cleanup
+                if (clean) {
+                    deleteDependency(element);
+
+                // download & extract
+                } else {
+                    System.out.println("=> Handle " + element.getTagName() +
+                            " file: " + element.getAttribute("Source"));
+
+                    // download and/or check file
+                    String filePath = downloadCheckDependency(element, downloader);
+
+                    // extract if allowed
+                    if (!onlyDownload) {
+                        extractDependency(element, filePath);
+                    }
+                }
+            }
+        }
+
+        // delete cache if requested
+        if (clearCache) {
+            deleteDir(cachePath);
+        }
+
     }
 
     /**
@@ -164,154 +227,132 @@ public class DependencyDownloader {
 
     /**
      * Load the dependency list and clean all destinations
-     * @param path Path to the dependency list
+     * @param element Element of dependency
      */
-    private static void cleanDependencyList(String path) throws IOException,
-            ParserConfigurationException, SAXException, NoSuchAlgorithmException {
+    private static void deleteDependency(Element element) {
+        System.out.println("=> Remove " + element.getAttribute("Destination"));
 
-
-        // get node list
-        NodeList nodes = loadDependencyList(path).getChildNodes();
-        for (int i = 0; i < nodes.getLength(); i++) {
-            // get node
-            Node node = nodes.item(i);
-
-            // if node is an element handle it
-            if (node.getNodeType() == Node.ELEMENT_NODE) {
-                Element element = (Element) node;
-
-                System.out.println("=> Remove " + element.getAttribute("Destination"));
-
-                // delete destination
-                try {
-                    deleteDir(element.getAttribute("Destination"));
-                } catch (IOException e) {
-                    System.out.println("  Already removed!");
-                }
-            }
+        // delete destination
+        try {
+            deleteDir(element.getAttribute("Destination"));
+        } catch (IOException e) {
+            System.out.println("  Already removed!");
         }
     }
 
     /**
-     * Load the dependency list and download the dependencies
-     * @param path Path to the dependency list
-     * @param proxy Proxy used for download
-     * @throws IOException
-     * @throws ParserConfigurationException
-     * @throws SAXException
-     * @throws NoSuchAlgorithmException
+     * Load the dependency list and clean all destinations
+     * @param element Element of dependency
+     * @param downloader Downloader instance
+     * @return Path to cache file
      */
-    private static void downloadDependencyList(String path, String proxy) throws IOException,
-            ParserConfigurationException, SAXException, NoSuchAlgorithmException {
+    private static String downloadCheckDependency(Element element, Downloader downloader)
+            throws NoSuchAlgorithmException, IOException {
+        String source = element.getAttribute("Source");
+        String sourceBaseName = source.substring(source.lastIndexOf('/')+1, source.length());
 
-        // set tmp file
-        String tmpFile = ".tmpDependencyFile.dat";
+        // get path for cache file
+        String cacheFilePath = cachePath + sourceBaseName;
 
-        // create downloader
-        Downloader downloader = new Downloader(proxy);
+        // check if file is in cache
+        if (new File(cacheFilePath).exists()) {
+            System.out.println("  -> Found file in cache!");
+            try {
+                // check checksum (if exist)
+                checkChecksum(element, cacheFilePath);
 
-        // get node list
-        NodeList nodes = loadDependencyList(path).getChildNodes();
-        for (int i = 0; i < nodes.getLength(); i++) {
-            // get node
-            Node node = nodes.item(i);
-
-            // if node is an element handle it
-            if (node.getNodeType() == Node.ELEMENT_NODE) {
-                Element element = (Element) node;
-
-                // handle normal files
-                if (element.getTagName().equals("File")) {
-                    System.out.println("=> Get plain file: " + element.getAttribute("Source"));
-                    // download file
-                    downloader.downloadFile(element.getAttribute("Source"),
-                            element.getAttribute("Destination"));
-
-                    // check checksum (if exist)
-                    checkChecksum(element, downloader.getLastDownloadedFile());
-                    System.out.println("");
-
-                    // handle ZIP files
-                } else if (element.getTagName().equals("Zip")) {
-                    System.out.println("=> Get zip file: " + element.getAttribute("Source"));
-                    // download file
-                    downloader.downloadFile(element.getAttribute("Source"), tmpFile);
-
-                    // check checksum (if exist)
-                    checkChecksum(element, downloader.getLastDownloadedFile());
-
-                    // decompress file
-                    Zip.decompress(tmpFile,
-                                   element.getAttribute("Destination"),
-                                   element.getAttribute("SourceSubDir"));
-
-                    // remove tmp file
-                    Files.delete(Paths.get(tmpFile));
-
-                    System.out.println("");
-
-                // handle GZIP files
-                } else if (element.getTagName().equals("GZip")) {
-                    System.out.println("=> Get Gzip file: " + element.getAttribute("Source"));
-                    // download file
-                    downloader.downloadFile(element.getAttribute("Source"), tmpFile);
-
-                    // check checksum (if exist)
-                    checkChecksum(element, downloader.getLastDownloadedFile());
-
-                    // decompress file
-                    GZip.decompress(tmpFile, element.getAttribute("Destination"));
-
-                    // remove tmp file
-                    Files.delete(Paths.get(tmpFile));
-
-                    System.out.println("");
-
-                // handle TAR files
-                } else if (element.getTagName().equals("Tar")) {
-                    System.out.println("=> Get Tar file: " + element.getAttribute("Source"));
-                    // download file
-                    downloader.downloadFile(element.getAttribute("Source"), tmpFile);
-
-                    // check checksum (if exist)
-                    checkChecksum(element, downloader.getLastDownloadedFile());
-
-                    // extract file
-                    Tar.extract(tmpFile,
-                                element.getAttribute("Destination"),
-                                element.getAttribute("SourceSubDir"));
-
-                    // remove tmp file
-                    Files.delete(Paths.get(tmpFile));
-
-                    System.out.println("");
-
-                // handle TAR.GZ files
-                } else if (element.getTagName().equals("TarGz")) {
-                    System.out.println("=> Get TarGz file: " + element.getAttribute("Source"));
-                    // download file
-                    downloader.downloadFile(element.getAttribute("Source"), tmpFile);
-
-                    // check checksum (if exist)
-                    checkChecksum(element, downloader.getLastDownloadedFile());
-
-                    // decompress file
-                    GZip.decompress(tmpFile, tmpFile + ".ungz");
-
-                    // extract file
-                    Tar.extract(tmpFile + ".ungz",
-                                element.getAttribute("Destination"),
-                                element.getAttribute("SourceSubDir"));
-
-                    // remove tmp file
-                    Files.delete(Paths.get(tmpFile));
-                    Files.delete(Paths.get(tmpFile + ".ungz"));
-
-                    System.out.println("");
-                } else {
-                    System.err.println("Unknown file type: " + element.getNodeName());
-                }
+                // file exist and checksum is valid or missing -> use cache
+                return cacheFilePath;
+            } catch (IOException e) {
+                System.out.println("  Checksum of cached file is invalid! Try redownload!");
             }
+        }
+
+        // download the file
+        downloader.downloadFile(element.getAttribute("Source"), cachePath + "tmp.dat");
+
+        // check checksum (if exist)
+        checkChecksum(element, cachePath + "tmp.dat");
+
+        // copy file to cache
+        Files.copy(new File(cachePath + "tmp.dat").toPath(),
+                   new File(cacheFilePath).toPath());
+
+        // remove tmp file
+        Files.delete(Paths.get(cachePath + "tmp.dat"));
+
+        return cacheFilePath;
+    }
+
+    /**
+     * Extract the dependency
+     * @param element Element to extract
+     * @param filePath Path of the cache file
+     * @throws IOException
+     */
+    private static void extractDependency(Element element, String filePath)
+            throws IOException {
+        // handle normal files
+        if (element.getTagName().equals("File")) {
+            System.out.println("  Copy plain file: " + filePath);
+
+            // copy the file
+            Files.copy(new File(filePath).toPath(),
+                       new File(element.getAttribute("Destination")).toPath());
+
+            System.out.println("");
+
+            // handle ZIP files
+        } else if (element.getTagName().equals("Zip")) {
+            System.out.println("  Extract zip file: " + filePath);
+
+            // decompress file
+            Zip.decompress(filePath,
+                    element.getAttribute("Destination"),
+                    element.getAttribute("SourceSubDir"));
+
+            System.out.println("");
+
+            // handle GZIP files
+        } else if (element.getTagName().equals("GZip")) {
+            System.out.println("  Decompress Gzip file: " + filePath);
+
+            // decompress file
+            GZip.decompress(filePath, element.getAttribute("Destination"));
+
+            System.out.println("");
+
+            // handle TAR files
+        } else if (element.getTagName().equals("Tar")) {
+            System.out.println("  Extract Tar file: " + filePath);
+
+            // extract file
+            Tar.extract(filePath,
+                    element.getAttribute("Destination"),
+                    element.getAttribute("SourceSubDir"));
+
+            System.out.println("");
+
+            // handle TAR.GZ files
+        } else if (element.getTagName().equals("TarGz")) {
+            System.out.println("  Decompress TarGz file: " + filePath);
+
+            // decompress file
+            GZip.decompress(filePath, cachePath + "tmp.dat");
+
+            System.out.println("  Extract TarGz file: " + filePath);
+
+            // extract file
+            Tar.extract(cachePath + "tmp.dat",
+                    element.getAttribute("Destination"),
+                    element.getAttribute("SourceSubDir"));
+
+            // remove tmp file
+            Files.delete(Paths.get(cachePath + "tmp.dat"));
+
+            System.out.println("");
+        } else {
+            System.err.println("Unknown file type: " + element.getNodeName());
         }
     }
 

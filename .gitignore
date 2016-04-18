@@ -7,6 +7,6 @@
 build/
 
 ### Application files
-*.log
 tmp/
 depend.xml
+.dependencyDownloader/

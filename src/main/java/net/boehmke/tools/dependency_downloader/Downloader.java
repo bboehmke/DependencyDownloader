@@ -18,11 +18,6 @@ import java.net.*;
  */
 public class Downloader {
     /**
-     * Path to the last downloaded file
-     */
-    private String lastDownloadedFile;
-
-    /**
      * Proxy for download
      */
     private Proxy proxy;
@@ -137,17 +132,6 @@ public class Downloader {
         // close streams
         in.close();
         out.close();
-
-        // set last downloaded file
-        lastDownloadedFile = destinationFile.getPath();
-    }
-
-    /**
-     * Get the last downloaded file
-     * @return Path to the last downloaded file
-     */
-    public String getLastDownloadedFile() {
-        return lastDownloadedFile;
     }
 
     /**
