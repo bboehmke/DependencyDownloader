@@ -308,8 +308,8 @@ public class DependencyDownloader {
 
             // decompress file
             Zip.decompress(filePath,
-                    element.getAttribute("Destination"),
-                    element.getAttribute("SourceSubDir"));
+                           element.getAttribute("Destination"),
+                           element.getAttribute("SourceSubDir"));
 
             System.out.println("");
 
@@ -328,8 +328,8 @@ public class DependencyDownloader {
 
             // extract file
             Tar.extract(filePath,
-                    element.getAttribute("Destination"),
-                    element.getAttribute("SourceSubDir"));
+                        element.getAttribute("Destination"),
+                        element.getAttribute("SourceSubDir"));
 
             System.out.println("");
 
@@ -344,8 +344,8 @@ public class DependencyDownloader {
 
             // extract file
             Tar.extract(cachePath + "tmp.dat",
-                    element.getAttribute("Destination"),
-                    element.getAttribute("SourceSubDir"));
+                        element.getAttribute("Destination"),
+                        element.getAttribute("SourceSubDir"));
 
             // remove tmp file
             Files.delete(Paths.get(cachePath + "tmp.dat"));
